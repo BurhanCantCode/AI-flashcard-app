@@ -29,7 +29,6 @@ export default function Generate() {
   const router = useRouter();
 
   // Function to handle form submission and generate flashcards
-  
   const handleSubmit = async () => {
     try {
       // Send a POST request to the API endpoint
@@ -47,6 +46,7 @@ export default function Generate() {
     } catch (error) {
       console.error("Error generating flashcards:", error);
     }
+  };
 
   // Function to handle flipping a flashcard
   const handleCardClick = (id) => {
@@ -194,5 +194,4 @@ export default function Generate() {
       </Dialog>
     </div>
   );
-}
 }
