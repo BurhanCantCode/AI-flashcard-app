@@ -2,9 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, useAuth, UserButton } from "@clerk/nextjs";
 import { ModeToggle } from "@/components/ui/togglemode";
+import { useState, useEffect } from "react";
+import { doc, collection, getDoc } from "firebase/firestore";
+import { db } from "@/firebase";
 import getStripe from '@/lib/get-stripe';
+import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 const handleCheckout = async (plan) => {
   try {
@@ -36,29 +41,53 @@ const handleCheckout = async (plan) => {
 };
 
 export default function Home() {
+  const { isSignedIn, user } = useAuth();
+  const [showDialog, setShowDialog] = useState(false);
+  const [userPlan, setUserPlan] = useState('free');
+  const [collectionsCount, setCollectionsCount] = useState(0);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isSignedIn && user) {
+      async function fetchUserData() {
+        try {
+          const docRef = doc(collection(db, "users"), user.id);
+          const docSnap = await getDoc(docRef);
+
+          if (docSnap.exists()) {
+            const userData = docSnap.data();
+            const count = userData.flashcards?.length || 0;
+            setCollectionsCount(count);
+            setUserPlan(userData.plan || 'free');
+            console.log(`Collections Count: ${count}`);
+            console.log(`User Plan: ${userData.plan || 'free'}`);
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        }
+      }
+
+      fetchUserData();
+    }
+  }, [isSignedIn, user]);
+
+  const handleGetStarted = () => {
+    if (isSignedIn) {
+      if (collectionsCount >= 5 && userPlan === 'free') {
+        console.log('Showing dialog because collections count is 5 and plan is free.');
+        setShowDialog(true);
+      } else {
+        console.log('Redirecting to /generate');
+        router.push("/generate");
+      }
+    } else {
+      console.log('Redirecting to /sign-in');
+      router.push("/sign-in");
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <header className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 w-full border-b">
-        <div className="container flex h-16 items-center justify-between">
-          <h4 className="text-2xl font-bold">AI Flash</h4>
-          <div className="flex items-center gap-4">
-            <ModeToggle />
-            <SignedOut>
-              <div className="flex gap-4">
-                <Button variant="ghost" asChild>
-                  <a href="/sign-in">Login</a>
-                </Button>
-                <Button asChild>
-                  <a href="/sign-up">Sign up</a>
-                </Button>
-              </div>
-            </SignedOut>
-            <SignedIn>
-              <UserButton />
-            </SignedIn>
-          </div>
-        </div>
-      </header>
 
       <main className="flex-1">
         <section className="py-20 text-center">
@@ -66,7 +95,7 @@ export default function Home() {
           <p className="mb-8 text-xl text-muted-foreground">
             The easiest method to create your flashcards from your documents
           </p>
-          <Button size="lg">Get Started</Button>
+          <Button size="lg" onClick={handleGetStarted}>Get Started</Button>
         </section>
 
         <section className="py-20">
@@ -137,6 +166,41 @@ export default function Home() {
           </div>
         </section>
       </main>
+
+      <Dialog open={showDialog} onOpenChange={(isOpen) => !isOpen && setShowDialog(false)}>
+        <DialogContent>
+          <DialogTitle>Upgrade Your Plan</DialogTitle>
+          <p className="mb-4">
+            You've reached the limit of 5 flashcards. To create more, please upgrade your plan.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-2xl font-semibold">Basic</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <h3 className="mb-4 text-3xl font-bold">$5 / month</h3>
+                <p className="mb-6 text-muted-foreground">
+                  Access to basic card features and limited storage
+                </p>
+                <Button onClick={() => handleCheckout('Basic')} className="w-full">Choose Basic</Button>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-2xl font-semibold">Pro</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <h3 className="mb-4 text-3xl font-bold">$10 / month</h3>
+                <p className="mb-6 text-muted-foreground">
+                  Unlimited flashcards and storage with priority support
+                </p>
+                <Button onClick={() => handleCheckout('Pro')} className="w-full">Choose Pro</Button>
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
