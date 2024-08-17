@@ -14,7 +14,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { collection, doc, getDoc, writeBatch } from "firebase/firestore";
 import { db } from "@/firebase"; // Make sure to correctly import your Firebase configuration
@@ -31,16 +30,13 @@ export default function Generate() {
   // Function to handle form submission and generate flashcards
   const handleSubmit = async () => {
     try {
-      // Send a POST request to the API endpoint
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text }), // Send the input text as JSON
+        body: JSON.stringify({ text }),
       });
-
-      // Parse the response and update the flashcards state
       const data = await response.json();
       setFlashcards(data);
     } catch (error) {
@@ -52,7 +48,7 @@ export default function Generate() {
   const handleCardClick = (id) => {
     setFlipped((prev) => ({
       ...prev,
-      [id]: !prev[id], // Toggle the flipped state for the clicked card
+      [id]: !prev[id],
     }));
   };
 
@@ -78,7 +74,6 @@ export default function Generate() {
       return;
     }
 
-    // Initialize a batch write operation
     const batch = writeBatch(db);
     const userDocRef = doc(collection(db, "users"), user.id);
     const docSnap = await getDoc(userDocRef);
@@ -86,43 +81,34 @@ export default function Generate() {
     let collections = [];
 
     if (docSnap.exists()) {
-      // If the user document exists, get existing flashcard collections
       collections = docSnap.data().flashcards || [];
-
-      // Check if a collection with the same name already exists
       if (collections.find((f) => f.name === name)) {
         alert("Flashcard collection with the same name already exists.");
         return;
       } else {
-        // Add the new collection to the list
         collections.push({ name });
         batch.set(userDocRef, { flashcards: collections }, { merge: true });
       }
     } else {
-      // If the user document doesn't exist, create it with the new collection
       batch.set(userDocRef, { flashcards: [{ name }] });
     }
 
-    // Create a new collection for the flashcards
     const colRef = collection(userDocRef, name);
-
-    // Add each flashcard to the batch write operation
     flashcards.forEach((flashcard) => {
       const cardDocRef = doc(colRef);
       batch.set(cardDocRef, flashcard);
     });
 
-    // Commit the batch write operation
     await batch.commit();
     handleClose();
-    router.push("/flashcards"); // Navigate to the flashcards page
+    router.push("/flashcards");
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="mt-8 mb-12 flex flex-col items-center">
         <h1 className="text-3xl font-bold mb-6">Generate Flashcards</h1>
-        <div className="w-full p-6  rounded-lg shadow-md">
+        <div className="w-full p-6 rounded-lg shadow-md">
           <div className="flex flex-col items-center">
             <Textarea
               value={text}
@@ -131,7 +117,7 @@ export default function Generate() {
               className="mb-4 w-full"
               rows={4}
             />
-            <Button variant="default" onClick={handleSubmit} className="">
+            <Button variant="default" onClick={handleSubmit}>
               Submit
             </Button>
           </div>

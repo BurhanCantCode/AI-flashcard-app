@@ -2,35 +2,89 @@
 
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
-import { doc, getDoc, getDocs, collection } from "firebase/firestore";
+import { doc, getDocs, collection } from "firebase/firestore";
 import { db } from "@/firebase";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useSearchParams } from "next/navigation";
+
+// CSS styles for the flip effect
+const flipCardStyles = `
+  .flip-card {
+    background-color: transparent;
+    width: 300px; /* Fixed width */
+    height: 192px; /* Fixed height matching the Generate component */
+    perspective: 1000px;
+    margin: 15px; /* Space between cards */
+  }
+  .flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+    cursor: pointer;
+  }
+  .flip-card-flip .flip-card-inner {
+    transform: rotateY(180deg);
+  }
+  .flip-card-front,
+  .flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+  }
+  .flip-card-front {
+    background-color: #fff;
+    color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .flip-card-back {
+    background-color: #f8f9fa;
+    color: black;
+    transform: rotateY(180deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .flip-card-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+`;
 
 export default function Flashcard() {
   const { isLoaded, isSignedIn, user } = useUser();
   const [flashcards, setFlashcards] = useState([]);
   const [flipped, setFlipped] = useState({});
-
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const search = searchParams.get("id");
+  const collectionName = searchParams.get("id");
 
   useEffect(() => {
-    async function getFlashcard() {
-      if (!search || !user) return;
-      const colRef = collection(doc(collection(db, "users"), user.id), search);
-      const docs = await getDocs(colRef);
-      const flashcards = [];
+    async function getFlashcards() {
+      if (!user || !collectionName) return;
 
-      docs.forEach((doc) => {
-        flashcards.push({ id: doc.id, ...doc.data() });
-      });
-      setFlashcards(flashcards);
+      try {
+        const colRef = collection(doc(collection(db, "users"), user.id), collectionName);
+        const docs = await getDocs(colRef);
+        const flashcardsData = docs.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setFlashcards(flashcardsData);
+      } catch (error) {
+        console.error("Error fetching flashcards:", error);
+      }
     }
 
-    getFlashcard();
-  }, [user, search]);
+    getFlashcards();
+  }, [user, collectionName]);
 
   const handleCardClick = (id) => {
     setFlipped((prev) => ({
@@ -40,48 +94,38 @@ export default function Flashcard() {
   };
 
   if (!isLoaded || !isSignedIn) {
-    return null;
+    return <p>Loading...</p>;
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="grid gap-4 mt-4">
-        {flashcards.length > 0 && (
-          <div className="mt-4">
-            <h2 className="text-2xl font-bold mb-4">Flashcards Preview</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {flashcards.map((flashcard, index) => (
-                <Card key={index} className="overflow-hidden">
-                  <Button
-                    variant="ghost"
-                    className="w-full h-full p-0"
-                    onClick={() => handleCardClick(index)}
-                  >
-                    <CardContent className="p-0">
-                      <div
-                        className={`relative w-full h-48 transition-transform duration-600 transform-gpu ${
-                          flipped[index] ? "rotate-y-180" : ""
-                        }`}
-                        style={{ perspective: "1000px", transformStyle: "preserve-3d" }}
-                      >
-                        <div className="absolute w-full h-full backface-hidden flex justify-center items-center p-4">
-                          <h3 className="text-lg font-medium">
-                            {flashcard.front}
-                          </h3>
-                        </div>
-                        <div className="absolute w-full h-full backface-hidden flex justify-center items-center p-4 [transform:rotateY(180deg)]">
-                          <h3 className="text-lg font-medium">
-                            {flashcard.back}
-                          </h3>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Button>
+    <div className="w-full">
+      <style>{flipCardStyles}</style>
+      <h1 className="text-3xl font-bold mb-6 text-center">{collectionName}</h1>
+      <div className="flex flex-wrap justify-center gap-6">
+        {flashcards.map((flashcard) => (
+          <div
+            className={`flip-card ${flipped[flashcard.id] ? "flip-card-flip" : ""}`}
+            key={flashcard.id}
+            onClick={() => handleCardClick(flashcard.id)}
+          >
+            <div className="flip-card-inner">
+              <div className="flip-card-front">
+                <Card className="flip-card-content">
+                  <CardContent>
+                    <h2 className="text-xl font-semibold">{flashcard.front}</h2>
+                  </CardContent>
                 </Card>
-              ))}
+              </div>
+              <div className="flip-card-back">
+                <Card className="flip-card-content">
+                  <CardContent>
+                    <h2 className="text-xl font-semibold">{flashcard.back}</h2>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
-        )}
+        ))}
       </div>
     </div>
   );
