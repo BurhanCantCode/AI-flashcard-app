@@ -1,8 +1,11 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from "@/components/theme-provider";
 import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
+import { ModeToggle } from "@/components/ui/togglemode";
+import { Button } from "@/components/ui/button";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,14 +22,38 @@ export default function RootLayout({ children }) {
       }}
     >
       <html lang="en">
-        <body>
+        <body className={inter.className}>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange
           >
-            {children}
+            {/* Header */}
+            <header className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 w-full border-b">
+              <div className="container flex h-16 items-center justify-between">
+                <h4 className="text-2xl font-bold">AI Flash</h4>
+                <div className="flex items-center gap-4">
+                  <ModeToggle />
+                  <SignedOut>
+                    <div className="flex gap-4">
+                      <Button variant="ghost" asChild>
+                        <a href="/sign-in">Login</a>
+                      </Button>
+                      <Button asChild>
+                        <a href="/sign-up">Sign up</a>
+                      </Button>
+                    </div>
+                  </SignedOut>
+                  <SignedIn>
+                    <UserButton />
+                  </SignedIn>
+                </div>
+              </div>
+            </header>
+
+            {/* Main content */}
+            <main>{children}</main>
           </ThemeProvider>
         </body>
       </html>
