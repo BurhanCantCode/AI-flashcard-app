@@ -171,7 +171,7 @@ export default function Home() {
         <DialogContent>
           <DialogTitle>Upgrade Your Plan</DialogTitle>
           <p className="mb-4">
-            You've reached the limit of 5 flashcards. To create more, please upgrade your plan.
+            You have reached the limit of 5 flashcards. To create more, please upgrade your plan.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
