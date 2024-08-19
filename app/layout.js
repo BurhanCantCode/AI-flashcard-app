@@ -6,6 +6,7 @@ import { dark } from "@clerk/themes";
 import { ModeToggle } from "@/components/ui/togglemode";
 import { Button } from "@/components/ui/button";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -53,7 +54,9 @@ export default function RootLayout({ children }) {
             </header>
 
             {/* Main content */}
-            <main>{children}</main>
+            <main>{children}
+              <Analytics />
+            </main>
           </ThemeProvider>
         </body>
       </html>
