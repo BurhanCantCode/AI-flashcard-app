@@ -16,7 +16,58 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { collection, doc, getDoc, writeBatch } from "firebase/firestore";
-import { db } from "@/firebase"; // Make sure to correctly import your Firebase configuration
+import { db } from "@/firebase"; // Ensure correct Firebase import
+
+// CSS styles for the flip effect
+const flipCardStyles = `
+  .flip-card {
+    background-color: transparent;
+    width: 300px; /* Fixed width */
+    height: 192px; /* Fixed height matching the Generate component */
+    perspective: 1000px;
+    margin: 15px; /* Space between cards */
+  }
+  .flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+    cursor: pointer;
+  }
+  .flip-card-flip .flip-card-inner {
+    transform: rotateY(180deg);
+  }
+  .flip-card-front,
+  .flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+  }
+  .flip-card-front {
+    background-color: #fff;
+    color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .flip-card-back {
+    background-color: #f8f9fa;
+    color: black;
+    transform: rotateY(180deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .flip-card-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+`;
 
 export default function Generate() {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -104,8 +155,14 @@ export default function Generate() {
     router.push("/flashcards");
   };
 
+  // Function to navigate to the collections page
+  const handleCollections = () => {
+    router.push("/flashcards");
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <style>{flipCardStyles}</style>
       <div className="mt-8 mb-12 flex flex-col items-center">
         <h1 className="text-3xl font-bold mb-6">Generate Flashcards</h1>
         <div className="w-full p-6 rounded-lg shadow-md">
@@ -117,9 +174,14 @@ export default function Generate() {
               className="mb-4 w-full"
               rows={4}
             />
-            <Button variant="default" onClick={handleSubmit}>
-              Submit
-            </Button>
+            <div className="flex space-x-4">
+              <Button variant="default" onClick={handleSubmit}>
+                Submit
+              </Button>
+              <Button variant="outline" onClick={handleCollections}>
+                Your Collections
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -127,24 +189,30 @@ export default function Generate() {
       {flashcards.length > 0 && (
         <div className="mt-8">
           <h2 className="text-2xl font-semibold mb-4">Flashcards Preview</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          <div className="flex flex-wrap justify-center gap-6">
             {flashcards.map((flashcard, index) => (
-              <Card
+              <div
+                className={`flip-card ${flipped[index] ? "flip-card-flip" : ""}`}
                 key={index}
-                className="cursor-pointer"
                 onClick={() => handleCardClick(index)}
               >
-                <CardContent className="h-48 flex items-center justify-center">
-                  <div className="text-center">
-                    <h3 className="text-lg font-medium">
-                      {flipped[index] ? flashcard.back : flashcard.front}
-                    </h3>
-                    <p className="text-sm text-gray-500 mt-2">
-                      {flipped[index] ? "Back" : "Front"}
-                    </p>
+                <div className="flip-card-inner">
+                  <div className="flip-card-front">
+                    <Card className="flip-card-content">
+                      <CardContent>
+                        <h2 className="text-xl font-semibold">{flashcard.front}</h2>
+                      </CardContent>
+                    </Card>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="flip-card-back">
+                    <Card className="flip-card-content">
+                      <CardContent>
+                        <h2 className="text-xl font-semibold">{flashcard.back}</h2>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
 

@@ -1,7 +1,7 @@
 "use client"; // Add this directive at the top of the file
 
 import { useEffect, useState } from "react";
-import { doc, collection, getDocs, getDoc, setDoc } from "firebase/firestore";
+import { doc, collection, getDocs, setDoc, getDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
@@ -9,11 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import getStripe from '@/lib/get-stripe';
+import Link from 'next/link'; // Import Link component
 
 export default function Flashcards() {
   const { isLoaded, isSignedIn, user } = useUser();
   const [flashcards, setFlashcards] = useState([]);
-  const [search, setSearch] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [userPlan, setUserPlan] = useState('free'); // Default to free plan
   const router = useRouter();
@@ -24,29 +24,21 @@ export default function Flashcards() {
 
       let flashcards = [];
 
-      if (search) {
-        const colRef = collection(doc(collection(db, "users"), user.id), search);
-        const docs = await getDocs(colRef);
-        docs.forEach((doc) => {
-          flashcards.push({ id: doc.id, ...doc.data() });
-        });
+      const docRef = doc(collection(db, "users"), user.id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        flashcards = docSnap.data().flashcards || [];
+        // Retrieve user's plan information
+        setUserPlan(docSnap.data().plan || 'free');
       } else {
-        const docRef = doc(collection(db, "users"), user.id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          flashcards = docSnap.data().flashcards || [];
-          // Retrieve user's plan information
-          setUserPlan(docSnap.data().plan || 'free');
-        } else {
-          await setDoc(docRef, { flashcards: [], plan: 'free' });
-        }
+        await setDoc(docRef, { flashcards: [], plan: 'free' });
       }
 
       setFlashcards(flashcards);
     }
 
     getFlashcards();
-  }, [user, search]);
+  }, [user]);
 
   const handleAddCollection = () => {
     if (flashcards.length >= 5 && userPlan === 'free') {
@@ -95,14 +87,6 @@ export default function Flashcards() {
 
   return (
     <div className="w-full">
-      <input 
-        type="text" 
-        value={search} 
-        onChange={(e) => setSearch(e.target.value)} 
-        placeholder="Search flashcards" 
-        className="mb-4 p-2 border rounded"
-      />
-
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
         {flashcards.map((flashcard, index) => (
           <Card key={index}>
@@ -121,6 +105,9 @@ export default function Flashcards() {
 
       <div className="flex justify-center mt-8">
         <Button onClick={handleAddCollection}>Add New Collection</Button>
+        <Link href="/" passHref>
+          <Button className="ml-5">Back to Home</Button>
+        </Link>
       </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>

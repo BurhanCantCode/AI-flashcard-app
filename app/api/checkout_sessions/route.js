@@ -22,7 +22,8 @@ export async function POST(req) {
       })),
       mode: 'payment',
       success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/cancel`,
+      cancel_url: `${origin}`, // Redirects to the homepage directly
+
     });
 
     return NextResponse.json({ id: session.id });
